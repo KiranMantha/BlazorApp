@@ -3,38 +3,59 @@
 
 <h1>Blazor Server File Upload</h1>
 
-<h3>@Message</h3>
+<h5>@Message</h5>
 
 <form @onsubmit="OnSubmit">
-    <InputFile OnChange="@OnInputFileChange" multiple />
-    <br /><br />
-    <button type="submit">Upload Selected File(s)</button>
+    <div class="form-group">
+        <InputFile class="form-control-file" OnChange="@LoadFiles" multiple />
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary">Upload Selected File(s)</button>
 </form>
+
+<ul class="list-group mt-3">
+    @foreach (var (file, content) in loadedFiles)
+    {
+        <li class="list-group-item">@file.Name</li>
+    }
+</ul>
 
 @code {
     string Message = "No file(s) selected";
+    private Dictionary<IBrowserFile, string> loadedFiles =
+    new Dictionary<IBrowserFile, string>();
+    private IList<IBrowserFile> selectedFiles = new List<IBrowserFile>();
 
-    IReadOnlyList<IBrowserFile> selectedFiles;
-
-    private void OnInputFileChange(InputFileChangeEventArgs e)
+    private void LoadFiles(InputFileChangeEventArgs e)
     {
-        selectedFiles = e.GetMultipleFiles();
-        Message = $"{selectedFiles.Count} file(s) selected";
-        this.StateHasChanged();
+        selectedFiles = e.GetMultipleFiles().ToList();
     }
 
     private async void OnSubmit()
     {
-        foreach (var file in selectedFiles)
-        {
+        @*
+            foreach (var file in selectedFiles)
+            {
             Stream stream = file.OpenReadStream();
             var path = $"{env.WebRootPath}\\{file.Name}";
             FileStream fs = File.Create(path);
             await stream.CopyToAsync(fs);
             stream.Close();
             fs.Close();
+            }
+        *@
+        if (selectedFiles.Count > 0)
+        {
+            foreach (var file in selectedFiles)
+            {
+                using (var reader =
+                new StreamReader(file.OpenReadStream()))
+                {
+                    loadedFiles.Add(file, await reader.ReadToEndAsync());
+                }
+            }
+            Message = $"{selectedFiles.Count} file(s) uploaded on server";
+            selectedFiles.Clear();
+            this.StateHasChanged();
         }
-        Message = $"{selectedFiles.Count} file(s) uploaded on server";
-        this.StateHasChanged();
     }
 }

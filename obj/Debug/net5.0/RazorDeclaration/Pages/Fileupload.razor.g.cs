@@ -105,32 +105,42 @@ using Microsoft.AspNetCore.Hosting;
         }
         #pragma warning restore 1998
 #nullable restore
-#line 14 "c:\Kiran\poc\BlazorApp\Pages\Fileupload.razor"
+#line 22 "c:\Kiran\poc\BlazorApp\Pages\Fileupload.razor"
        
     string Message = "No file(s) selected";
+    private Dictionary<IBrowserFile, string> loadedFiles =
+    new Dictionary<IBrowserFile, string>();
+    private IList<IBrowserFile> selectedFiles = new List<IBrowserFile>();
 
-    IReadOnlyList<IBrowserFile> selectedFiles;
-
-    private void OnInputFileChange(InputFileChangeEventArgs e)
+    private void LoadFiles(InputFileChangeEventArgs e)
     {
-        selectedFiles = e.GetMultipleFiles();
-        Message = $"{selectedFiles.Count} file(s) selected";
-        this.StateHasChanged();
+        selectedFiles = e.GetMultipleFiles().ToList();
     }
 
     private async void OnSubmit()
     {
-        foreach (var file in selectedFiles)
+        
+
+#line default
+#line hidden
+#nullable disable
+#nullable restore
+#line 45 "c:\Kiran\poc\BlazorApp\Pages\Fileupload.razor"
+          
+        if (selectedFiles.Count > 0)
         {
-            Stream stream = file.OpenReadStream();
-            var path = $"{env.WebRootPath}\\{file.Name}";
-            FileStream fs = File.Create(path);
-            await stream.CopyToAsync(fs);
-            stream.Close();
-            fs.Close();
+            foreach (var file in selectedFiles)
+            {
+                using (var reader =
+                new StreamReader(file.OpenReadStream()))
+                {
+                    loadedFiles.Add(file, await reader.ReadToEndAsync());
+                }
+            }
+            Message = $"{selectedFiles.Count} file(s) uploaded on server";
+            selectedFiles.Clear();
+            this.StateHasChanged();
         }
-        Message = $"{selectedFiles.Count} file(s) uploaded on server";
-        this.StateHasChanged();
     }
 
 #line default
